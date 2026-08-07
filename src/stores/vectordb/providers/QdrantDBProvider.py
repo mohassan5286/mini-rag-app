@@ -1,6 +1,6 @@
 from qdrant_client import models, QdrantClient
 
-from models.db_schemes.data_chunk import DocumentRetrived
+from models.db_schemes import DocumentRetrived
 from ..VectorDBInterface import VectorDBInterface
 from ..VectorDBEnums import DistanceMethodEnums
 from typing import List

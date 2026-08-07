@@ -79,7 +79,7 @@ class NLPController(BaseController):
             return answer, full_prompt, chat_history
 
         system_prompt = self.template_parser.get(group = "rag", key = "system_prompt")
-        document_prompt = "\n".join([self.template_parser.get(group = "rag", key = "document_prompt", vars = {"doc_num": idx + 1, "chunk_text": retrieved_document.text} ) for idx, retrieved_document in enumerate(retrieved_documents)])
+        document_prompt = "\n".join([self.template_parser.get(group = "rag", key = "document_prompt", vars = {"doc_num": idx + 1, "chunk_text": self.generation_client.process_text(retrieved_document.text)} ) for idx, retrieved_document in enumerate(retrieved_documents)])
         footer_prompt = self.template_parser.get(group = "rag", key = "footer_prompt", vars = {"query": query})
         
         full_prompt = "\n\n".join([document_prompt, footer_prompt])
