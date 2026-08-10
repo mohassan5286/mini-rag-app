@@ -1,3 +1,4 @@
+from typing import List
 from pydantic_settings import BaseSettings
 
 
@@ -31,10 +32,12 @@ class Settings(BaseSettings):
     DEFAULT_OUTPUT_MAX_CHARACTERS: int = None
     GENERATION_DAFAULT_TEMPERATURE: float = None
 
+    VECTOR_DB_BACKEND_LITERAL: List[str] = None
     VECTOR_DB_BACKEND: str
     VECTOR_DB_PATH: str
     VECTOR_DB_DISTANCE_METHOD: str
-
+    VECTOR_DB_PGVEC_INDEX_THRESHOLD: int = 100
+    
     PRIMARY_LANG: str
     DEFAULT_LANG: str
 

@@ -5,9 +5,16 @@ from models import ProcessEnums
 
 from langchain_community.document_loaders import TextLoader
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from typing import List
+from dataclasses import dataclass
 
 import os
+
+@dataclass
+class Retrived:
+    page_content: str
+    metadata: dict
 
 class ProcessController(BaseController):
     def __init__(self, project_id: str):
@@ -41,12 +48,37 @@ class ProcessController(BaseController):
         return None
     
     def process_file_content(self, file_content:list, file_id: str, chunk_size:int=100, chunk_overlap:int=20):
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=len)
-        
         file_content_texts = [rec.page_content for rec in file_content]
         file_content_metadata = [rec.metadata for rec in file_content]
 
-        chunks = text_splitter.create_documents(file_content_texts, metadatas=file_content_metadata)
+        chunks = self.process_simpler_splitter(texts=file_content_texts, metadatas=file_content_metadata, chunk_size=chunk_size, text_splitter=".")
 
         return chunks
 
+    def process_simpler_splitter(self, texts: List[str], metadatas: List[dict], chunk_size: int=100, text_splitter: str = "."):
+        full_text = " ".join(texts)
+        sentences = [docs.strip() for docs in full_text.split(text_splitter) if len(docs.strip()) > 1]
+
+        chunks = []
+        current_chunk = ""
+
+        for sentence in sentences:
+            current_chunk += sentence + text_splitter
+            if len(current_chunk) >= chunk_size:
+                chunks.append(
+                    Retrived(
+                        page_content=current_chunk.strip(),
+                        metadata={}
+                    )
+                )
+                current_chunk = ""
+        
+        if current_chunk:
+            chunks.append(
+                Retrived(
+                    page_content=current_chunk.strip(),
+                    metadata={}
+                )
+            )
+
+        return chunks

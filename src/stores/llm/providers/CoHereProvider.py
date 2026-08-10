@@ -2,6 +2,7 @@ from ..LLMInterface import LLMInterface
 from ..LLMEnums import CoHereEnums, DocumentTypeEnums
 import cohere
 import logging
+from typing import List, Union
 
 class CoHereProvider(LLMInterface):
     def __init__(self, api_key: str, default_input_max_characters: int = 1000, default_output_max_characters: int = 1000, default_generation_temperature: float = 0.1):
@@ -53,7 +54,7 @@ class CoHereProvider(LLMInterface):
         
         return response.text
 
-    def embed_text(self, text: str, document_type: str = None):
+    def embed_text(self, text: Union[str, List[str]], document_type: str = None):
         if not self.client:
             self.logger.error("CoHere client was not set")
             return None 
@@ -62,13 +63,16 @@ class CoHereProvider(LLMInterface):
             self.logger.error("Embedding model for CoHere was not set")
             return None
 
+        if isinstance(text, str):
+            text = [text]
+
         input_type = self.enums.DOCUMENT.value if hasattr(self.enums.DOCUMENT, 'value') else self.enums.DOCUMENT
         if document_type == DocumentTypeEnums.QUERY.value:
             input_type = self.enums.QUERY.value if hasattr(self.enums.QUERY, 'value') else self.enums.QUERY
 
         response = self.client.embed(
             model=self.embedding_model_id,
-            texts=[self.process_text(text)],
+            texts=[self.process_text(t) for t in text],
             input_type=input_type,
             embedding_types=['float']
         )
@@ -77,7 +81,7 @@ class CoHereProvider(LLMInterface):
             self.logger.error("Error while embedding text with CoHere")
             return None
 
-        return response.embeddings.float[0]
+        return response.embeddings.float
     
     def process_text(self, text: str):
         return text[:self.default_input_max_characters].strip()

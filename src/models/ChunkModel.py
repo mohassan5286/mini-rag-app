@@ -3,6 +3,7 @@ from bson import ObjectId
 from .db_schemes import DataChunk, Project
 from .BaseDataModel import BaseDataModel
 from sqlalchemy import delete, insert, select, func
+from sqlalchemy import text as sql_text
 
 class ChunkModel(BaseDataModel):
 
@@ -39,8 +40,11 @@ class ChunkModel(BaseDataModel):
                 await session.commit()
         return len(chunks)
 
-    async def delete_chunks_by_project_id(self, project_id:ObjectId):
+    async def delete_chunks_by_project_id(self, project_id:ObjectId, collection_name:str):
         async with self.db_client() as session:
+            drop_stmt = sql_text(f"DROP TABLE IF EXISTS {collection_name} CASCADE;")
+            await session.execute(drop_stmt)
+            
             stmt = delete(DataChunk).where(DataChunk.chunk_project_id == project_id)
             result = await session.execute(stmt)
             deleted_count = result.rowcount
@@ -53,4 +57,11 @@ class ChunkModel(BaseDataModel):
             result = await session.execute(stmt)
             chunks = result.scalars().all()
         return chunks
+
+    async def get_project_chunks_count(self, project_id:ObjectId):
+        async with self.db_client() as session:
+            stmt = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id)
+            result = await session.execute(stmt)
+            count = result.scalars().all()[0]
+        return count
     

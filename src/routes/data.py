@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, UploadFile, status, Request
 from fastapi.responses import JSONResponse
 
 from helpers.config import get_settings
-from controllers import DataController, ProjectController, ProcessController
+from controllers import DataController, ProjectController, ProcessController, NLPController
 from models.db_schemes import Asset
 from models.enums import AssetTypeEnum
 from .schema import ProcessRequest
@@ -73,6 +73,13 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        template_parser=request.app.template_parser,
+    )
+
     file_id = process_request.file_id
     chunk_size = process_request.chunk_size
     overlap_size = process_request.overlap_size
@@ -108,7 +115,8 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
 
     chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
     if do_reset:
-        await chunk_model.delete_chunks_by_project_id(project_id=project.project_id)
+        collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+        await chunk_model.delete_chunks_by_project_id(project_id=project.project_id, collection_name=collection_name)
 
     for asset_id, file_id in project_files_ids.items():
         file_content = process_controller.get_file_content(file_id=file_id)
