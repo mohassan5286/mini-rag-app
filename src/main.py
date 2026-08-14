@@ -11,6 +11,8 @@ from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 
 from stores.llm.templates import TemplateParser
 
+from utils.metrics import setup_metrics
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -40,6 +42,8 @@ async def lifespan(app: FastAPI):
     await app.vectordb_client.disconnect()
 
 app = FastAPI(lifespan=lifespan)
+
+setup_metrics(app)
 
 app.include_router(router)
 app.include_router(data_router)

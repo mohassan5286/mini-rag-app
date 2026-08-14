@@ -1,2 +1,14 @@
-mongodb
-.env
+# ========================
+# Environment Variables
+# ========================
+# Ignore all real .env files to protect your secrets
+/env/.env.*
+
+# Explicitly ALLOW tracking for the example .env files
+!/env/.env.example.*
+
+# ========================
+# Database Configuration
+# ========================
+# Ignore the real configuration (which contains DB passwords)
+/minirag/alembic.ini

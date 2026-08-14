@@ -51,7 +51,7 @@ class ProcessController(BaseController):
         file_content_texts = [rec.page_content for rec in file_content]
         file_content_metadata = [rec.metadata for rec in file_content]
 
-        chunks = self.process_simpler_splitter(texts=file_content_texts, metadatas=file_content_metadata, chunk_size=chunk_size, text_splitter=".")
+        chunks = self.process_simpler_splitter(texts=file_content_texts, metadatas=file_content_metadata, chunk_size=chunk_size, text_splitter="\n")
 
         return chunks
 
