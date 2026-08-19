@@ -1,0 +1,28 @@
+name: Deploy MiniRAG Stack
+
+on:
+  push:
+    branches:
+      - arch/sql-pgvector
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Execute deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.HOST_USERNAME }}
+          key: ${{ secrets.HOST_SSH_KEY }}
+          port: ${{ secrets.HOST_PORT }}
+          script: |
+            # Navigate to your project directory
+            cd /home/github_user/workspace/mini-rag-app
+
+            # Pull the latest changes from GitHub
+            git pull
+
+            # Restart the Docker stack using the systemd service
+            sudo systemctl restart minirag.service

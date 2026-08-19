@@ -1,0 +1,33 @@
+[Unit]
+Description=MiniRAG Docker Service
+Requires=docker.service
+After=docker.service network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+User=github_user
+Group=docker
+
+# 1. Removed quotes around the directory path
+WorkingDirectory=/home/github_user/workspace/mini-rag-app/docker
+
+# 2. Timeouts: Give Docker plenty of time to pull images and databases time to save
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+# Ensure a clean state before starting
+ExecStartPre=-/usr/bin/docker compose down --remove-orphans
+
+# Bring up the stack in detached mode
+ExecStart=/usr/bin/docker compose up -d
+
+# 3. Clean teardown with orphan removal
+ExecStop=/usr/bin/docker compose down --remove-orphans
+
+# 4. Allow smooth reloading of the stack
+ExecReload=/usr/bin/docker compose up -d
+
+[Install]
+WantedBy=multi-user.target
