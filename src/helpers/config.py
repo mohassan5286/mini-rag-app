@@ -6,7 +6,6 @@ class Settings(BaseSettings):
 
     APP_NAME: str
     APP_VERSION: str
-    OPENAI_API_KEY: str
 
     ALLOWED_EXTENSIONS: list[str]
     FILE_MAX_SIZE: int
@@ -41,6 +40,14 @@ class Settings(BaseSettings):
     PRIMARY_LANG: str
     DEFAULT_LANG: str
 
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
+    CELERY_TASK_SERIALIZER: str
+    CELERY_RESULT_SERIALIZER: str
+    CELERY_TASK_TIME_LIMIT: int
+    CELERY_TASK_ACKS_LATE: bool
+    CELERY_WORKER_CONCURRENCY: int
+    CELERY_FLOWER_PASSWORD: str
 
     class Config:
         env_file = ".env"
