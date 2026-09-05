@@ -1,13 +1,13 @@
-from .BaseController import BaseController
-from .ProjectController import ProjectController
+import os
 
-from models import ProcessEnums
-
-from langchain_community.document_loaders import TextLoader
-from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_community.document_loaders import PyMuPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-import os
+from models import ProcessEnum
+
+from .base_controller import BaseController
+from .project_controller import ProjectController
+
 
 class ProcessController(BaseController):
     def __init__(self, project_id: str):
@@ -25,10 +25,10 @@ class ProcessController(BaseController):
         if not os.path.exists(file_path):
             return None
 
-        if file_extension == ProcessEnums.TEXT.value:
+        if file_extension == ProcessEnum.TEXT.value:
             return TextLoader(file_path, encoding="utf-8")
     
-        elif file_extension == ProcessEnums.PDF.value:
+        elif file_extension == ProcessEnum.PDF.value:
             return PyMuPDFLoader(file_path)
     
         return None
@@ -49,4 +49,3 @@ class ProcessController(BaseController):
         chunks = text_splitter.create_documents(file_content_texts, metadatas=file_content_metadata)
 
         return chunks
-

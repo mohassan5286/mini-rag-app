@@ -1,21 +1,24 @@
-from ..LLMInterface import LLMInterface
-from ..LLMEnums import CoHereEnums, DocumentTypeEnums
-import cohere
 import logging
 
+import cohere
+
+from ..llm_enum import CoHereEnum, DocumentTypeEnum
+from ..llm_interface import LLMInterface
+
+
 class CoHereProvider(LLMInterface):
-    def __init__(self, api_key: str, default_input_max_characters: int = 1000, default_output_max_characters: int = 1000, default_generation_temperature: float = 0.1):
+    def __init__(self, api_key: str, default_input_max_characters: int = 1000, default_output_max_tokens: int = 1000, default_generation_temperature: float = 0.1):
         self.api_key = api_key
         
         self.default_input_max_characters = default_input_max_characters
-        self.default_output_max_characters = default_output_max_characters
+        self.default_output_max_tokens = default_output_max_tokens
         self.default_generation_temperature = default_generation_temperature
 
         self.generation_model_id = None
         self.embedding_model_id = None
         self.embedding_size = None
 
-        self.enums = CoHereEnums
+        self.enums = CoHereEnum
 
         self.client = cohere.Client(self.api_key)
         self.logger = logging.getLogger(__name__)
@@ -27,7 +30,9 @@ class CoHereProvider(LLMInterface):
         self.embedding_model_id = model_id
         self.embedding_size = embedding_size
 
-    def generate_text(self, prompt: str, chat_history: list = [], max_output_tokens: int = None, temperature: float = None):
+    def generate_text(self, prompt: str, chat_history: list | None = None, max_output_tokens: int | None = None, temperature: float | None = None):
+        if chat_history is None:
+            chat_history = []
         if not self.client:
             self.logger.error("CoHere client was not set")
             return None
@@ -36,7 +41,7 @@ class CoHereProvider(LLMInterface):
             self.logger.error("Generation model for CoHere was not set")
             return None
         
-        max_output_tokens = max_output_tokens if max_output_tokens else self.default_output_max_characters
+        max_output_tokens = max_output_tokens if max_output_tokens else self.default_output_max_tokens
         temperature = temperature if temperature else self.default_generation_temperature
 
         response = self.client.chat(
@@ -53,7 +58,7 @@ class CoHereProvider(LLMInterface):
         
         return response.text
 
-    def embed_text(self, text: str, document_type: str = None):
+    def embed_text(self, text: str, document_type: str | None = None):
         if not self.client:
             self.logger.error("CoHere client was not set")
             return None 
@@ -63,7 +68,7 @@ class CoHereProvider(LLMInterface):
             return None
 
         input_type = self.enums.DOCUMENT.value if hasattr(self.enums.DOCUMENT, 'value') else self.enums.DOCUMENT
-        if document_type == DocumentTypeEnums.QUERY.value:
+        if document_type == DocumentTypeEnum.QUERY.value:
             input_type = self.enums.QUERY.value if hasattr(self.enums.QUERY, 'value') else self.enums.QUERY
 
         response = self.client.embed(
@@ -85,3 +90,4 @@ class CoHereProvider(LLMInterface):
 
     def construct_prompt(self, prompt: str, role: str):
         return {"role": role, "message": self.process_text(prompt)}
+    

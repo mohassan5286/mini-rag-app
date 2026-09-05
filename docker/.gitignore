@@ -1,2 +1,4 @@
-mongodb
+__pycache__/
+
+
 .env

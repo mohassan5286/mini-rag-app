@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str
 
-    OPENAI_API_KEY: str = None
     OPENAI_API_URL: str = None
     COHERE_API_KEY: str = None
 
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_ID: str = None
     EMBEDDING_MODEL_SIZE: int = None
     DEFAULT_INPUT_MAX_CHARACTERS: int = None
-    DEFAULT_OUTPUT_MAX_CHARACTERS: int = None
+    DEFAULT_OUTPUT_MAX_TOKENS: int = None
     GENERATION_DAFAULT_TEMPERATURE: float = None
 
     VECTOR_DB_BACKEND: str

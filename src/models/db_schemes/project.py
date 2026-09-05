@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional
 from bson.objectid import ObjectId
+from pydantic import BaseModel, Field, field_validator
+
 
 class Project(BaseModel):
-    id: Optional [ObjectId] = Field(None, alias = '_id')
+    id: ObjectId | None = Field(None, alias = '_id')
     project_id: str = Field(..., min_length = 1)
 
     @field_validator('project_id')
@@ -26,3 +26,4 @@ class Project(BaseModel):
                 "unique": True
             }
         ]
+    

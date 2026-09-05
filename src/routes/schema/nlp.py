@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional
+
 
 class PushRequest(BaseModel):
-    do_reset: Optional[bool] = True
+    do_reset: bool | None = True
 
 class SearchRequest(BaseModel):
     text: str
-    limit: Optional[int] = 2
+    limit: int | None = 2

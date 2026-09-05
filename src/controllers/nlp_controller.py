@@ -1,8 +1,10 @@
-from .BaseController import BaseController
-from models.db_schemes import Project, DataChunk
-from stores.llm.LLMEnums import DocumentTypeEnums
-from typing import List
 import json
+
+from models.db_schemes import DataChunk, Project
+from stores.llm.llm_enum import DocumentTypeEnum
+
+from .base_controller import BaseController
+
 
 class NLPController(BaseController):
 
@@ -32,7 +34,7 @@ class NLPController(BaseController):
 
         return json.loads(json.dumps(collection_info, default=lambda x: x.__dict__))
 
-    def index_into_vector_db(self, project: Project, chunks: List[DataChunk], chunks_ids: List[int]):    
+    def index_into_vector_db(self, project: Project, chunks: list[DataChunk], chunks_ids: list[int]):    
         if not project:
             return False
 
@@ -40,7 +42,7 @@ class NLPController(BaseController):
 
         chunks_text = [chunk.chunk_text for chunk in chunks]
         chunks_metadata = [chunk.chunk_metadata for chunk in chunks]
-        chunks_vector = [self.embedding_client.embed_text(text=chunk_text, document_type=DocumentTypeEnums.DOCUMENT.value) for chunk_text in chunks_text]
+        chunks_vector = [self.embedding_client.embed_text(text=chunk_text, document_type=DocumentTypeEnum.DOCUMENT.value) for chunk_text in chunks_text]
     
 
         return self.vectordb_client.insert_many(
@@ -60,7 +62,7 @@ class NLPController(BaseController):
         collection_name = self.create_collection_name(project_id=project.project_id)
         results =  self.vectordb_client.search_by_vector(
             collection_name=collection_name,
-            vector=self.embedding_client.embed_text(text=text, document_type=DocumentTypeEnums.QUERY.value),
+            vector=self.embedding_client.embed_text(text=text, document_type=DocumentTypeEnum.QUERY.value),
             limit=limit
         )
 
@@ -82,7 +84,7 @@ class NLPController(BaseController):
         document_prompt = "\n".join([self.template_parser.get(group = "rag", key = "document_prompt", vars = {"doc_num": idx + 1, "chunk_text": retrieved_document.text} ) for idx, retrieved_document in enumerate(retrieved_documents)])
         footer_prompt = self.template_parser.get(group = "rag", key = "footer_prompt", vars = {"query": query})
         
-        full_prompt = "\n\n".join([document_prompt, footer_prompt])
+        full_prompt = f"{document_prompt}\n\n{footer_prompt}"
 
         chat_history = [self.generation_client.construct_prompt(prompt=system_prompt, role=self.generation_client.enums.SYSTEM.value)]
 

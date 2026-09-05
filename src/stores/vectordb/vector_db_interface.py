@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
-from models.db_schemes.data_chunk import DocumentRetrived
+
+from models.db_schemes.data_chunk import RetrievedDocument
+
 
 class VectorDBInterface(ABC):
 
@@ -17,7 +19,7 @@ class VectorDBInterface(ABC):
         pass
 
     @abstractmethod
-    def list_all_collections(self) -> List:
+    def list_all_collections(self) -> list:
         pass
 
     @abstractmethod
@@ -33,14 +35,14 @@ class VectorDBInterface(ABC):
         pass
 
     @abstractmethod
-    def insert_one(self, collection_name: str, text: str, vector: list, record_id: int, metadata: dict = None):
+    def insert_one(self, collection_name: str, text: str, vector: list, record_id: int, metadata: dict | None = None):
         pass
 
     @abstractmethod
-    def insert_many(self, collection_name: str, texts: list, vectors: list, record_ids: list, metadata: list = None, batch_size: int = 50):
+    def insert_many(self, collection_name: str, texts: list, vectors: list, record_ids: list, metadata: list | None = None, batch_size: int = 50):
         pass
 
     @abstractmethod
-    def search_by_vector(self, collection_name: str, vector: list, limit: int) -> List[DocumentRetrived]:
+    def search_by_vector(self, collection_name: str, vector: list, limit: int) -> list[RetrievedDocument]:
         pass
     

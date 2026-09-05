@@ -1,30 +1,24 @@
+import logging
 import os
 
 import aiofiles
-from fastapi import APIRouter, Depends, UploadFile, status, Request
+from fastapi import APIRouter, Depends, Request, UploadFile, status
 from fastapi.responses import JSONResponse
 
+from controllers import DataController, ProcessController
 from helpers.config import get_settings
-from controllers import DataController, ProjectController, ProcessController
-from models.db_schemes.asset import Asset
+from models import AssetModel, ChunkModel, ProjectModel, ResponseEnum
+from models.db_schemes import Asset, DataChunk
 from models.enums import AssetTypeEnum
+
 from .schema import ProcessRequest
-from models import AssetModel, ResponseEnums
-
-from models import ProjectModel, ChunkModel
-from models.db_schemes import DataChunk
-
-import logging
-
 
 logger = logging.getLogger("uvicorn.error")
 
 data_router = APIRouter()
 
 @data_router.post("/upload/{project_id}")
-async def upload_file(
-    request: Request, project_id: str, file: UploadFile, settings=Depends(get_settings)
-):
+async def upload_file(request: Request, project_id: str, file: UploadFile, settings=Depends(get_settings)):
 
     project_model = await ProjectModel.create_instance(db_client=request.app.mongodb)  
     project = await project_model.get_project_or_create_one(project_id=project_id)
@@ -38,7 +32,6 @@ async def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST, content={"signal": results_signal}
         )
 
-    project_dir_path = ProjectController().get_project_path(project_id=project_id)
     file_path, file_id = data_controller.generate_unique_filepath(file.filename, project_id)
 
     try:
@@ -49,7 +42,7 @@ async def upload_file(
     except Exception as e:
         logger.error(f"Error occurred while saving the file: {e}")
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"signal": results_signal}
+            status_code=status.HTTP_400_BAD_REQUEST, content={"signal": ResponseEnum.FILE_UPLOAD_FAILED.value}
         )
 
     asset_model = await AssetModel.create_instance(db_client=request.app.mongodb)
@@ -64,9 +57,8 @@ async def upload_file(
     asset_record = await asset_model.create_asset(asset=asset_resource)
 
     return JSONResponse(
-        content={"signal": results_signal, "file_id": str(asset_record.id)},
+        content={"signal": ResponseEnum.FILE_UPLOAD_SUCCESS.value, "file_id": str(asset_record.id)},
     )
-
 
 @data_router.post('/process/{project_id}')
 async def process_endpoint(request: Request, project_id: str, process_request: ProcessRequest):
@@ -86,7 +78,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
         if asset_record is None:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"signal": ResponseEnums.ERROR.value}
+                content={"signal": ResponseEnum.FILE_ID_ERROR.value}
             )
         
         project_files_ids = {asset_record.id: asset_record.asset_name}
@@ -98,7 +90,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     if not project_files_ids:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"signal": ResponseEnums.ERROR.value}
+            content={"signal": ResponseEnum.NO_FILES_ERROR.value}
         )
 
     process_controller = ProcessController(project_id=project_id)
@@ -122,7 +114,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
         if not file_chunks:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                content={"signal": ResponseEnums.ERROR.value}
+                content={"signal": ResponseEnum.PROCESSING_FAILED.value}
             )
         
         file_chunks_records = [
@@ -143,7 +135,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
-            "signal": ResponseEnums.SUCCESS.value,
+            "signal": ResponseEnum.PROCESSING_SUCCESS.value,
             "no-records": no_records,
             "no-processed-files": no_processed_files
         }

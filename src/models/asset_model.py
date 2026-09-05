@@ -1,7 +1,9 @@
-from .db_schemes import Asset
-from .BaseDataModel import BaseDataModel
-from .enums import DataBaseEnum
 from bson import ObjectId
+
+from .base_data_model import BaseDataModel
+from .db_schemes import Asset
+from .enums import DataBaseEnum
+
 
 class AssetModel(BaseDataModel):
     def __init__(self, db_client: object):

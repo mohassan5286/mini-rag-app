@@ -1,10 +1,11 @@
-from qdrant_client import models, QdrantClient
-
-from models.db_schemes.data_chunk import DocumentRetrived
-from ..VectorDBInterface import VectorDBInterface
-from ..VectorDBEnums import DistanceMethodEnums
-from typing import List
 from logging import getLogger
+
+from qdrant_client import QdrantClient, models
+
+from models.db_schemes import RetrievedDocument
+
+from ..vector_db_enum import DistanceMethodEnums
+from ..vector_db_interface import VectorDBInterface
 
 
 class QdrantDBProvider(VectorDBInterface):
@@ -21,8 +22,8 @@ class QdrantDBProvider(VectorDBInterface):
             self.distance_method = models.Distance.COSINE
 
         else:
-            self.logger.error(f"Invalid distance method: {self.distance_method}")
-            raise ValueError(f"Invalid distance method: {self.distance_method}")
+            self.logger.error(f"Invalid distance method: {distance_method}")
+            raise ValueError(f"Invalid distance method: {distance_method}")
 
     def connect(self):
         self.client = QdrantClient(path=self.db_path)
@@ -33,7 +34,7 @@ class QdrantDBProvider(VectorDBInterface):
     def is_collection_existed(self, collection_name: str) -> bool:
         return self.client.collection_exists(collection_name)
 
-    def list_all_collections(self) -> List  :
+    def list_all_collections(self) -> list  :
         return self.client.get_collections()
 
     def get_collection_info(self, collection_name: str) -> dict:
@@ -56,7 +57,7 @@ class QdrantDBProvider(VectorDBInterface):
 
         return self.client.create_collection(collection_name, vectors_config = models.VectorParams(size = embedding_size,distance = self.distance_method))
 
-    def insert_one(self, collection_name: str, text: str, vector: list, record_id: int, metadata: dict = None):
+    def insert_one(self, collection_name: str, text: str, vector: list, record_id: int, metadata: dict | None = None):
         if not self.is_collection_existed(collection_name):
             self.logger.error(f"Collection {collection_name} does not exist")
             return False
@@ -82,7 +83,7 @@ class QdrantDBProvider(VectorDBInterface):
 
         return True
 
-    def insert_many(self, collection_name: str, texts: list, vectors: list, record_ids: list, metadata: list = None, batch_size: int = 50):
+    def insert_many(self, collection_name: str, texts: list, vectors: list, record_ids: list, metadata: list | None = None, batch_size: int = 50):
         if not self.is_collection_existed(collection_name):
             self.logger.error(f"Collection {collection_name} does not exist")
             return False
@@ -124,4 +125,5 @@ class QdrantDBProvider(VectorDBInterface):
             limit=limit
         )
 
-        return [DocumentRetrived(text = result.payload['text'], score = result.score) for result in results]
+        return [RetrievedDocument(text = result.payload['text'], score = result.score) for result in results]
+    

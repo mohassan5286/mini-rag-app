@@ -1,5 +1,5 @@
+from .base_data_model import BaseDataModel
 from .db_schemes import Project
-from .BaseDataModel import BaseDataModel
 from .enums import DataBaseEnum
 
 

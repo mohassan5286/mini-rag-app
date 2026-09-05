@@ -1,8 +1,10 @@
-from .db_schemes import DataChunk
-from .BaseDataModel import BaseDataModel
-from .enums import DataBaseEnum
 from bson.objectid import ObjectId
 from pymongo import InsertOne
+
+from .base_data_model import BaseDataModel
+from .db_schemes import DataChunk
+from .enums import DataBaseEnum
+
 
 class ChunkModel(BaseDataModel):
 
@@ -51,6 +53,7 @@ class ChunkModel(BaseDataModel):
 
         return result.deleted_count
 
-    async def get_poject_chunks(self, project_id:ObjectId, page_no:int=1, page_size:int=50):
+    async def get_project_chunks(self, project_id:ObjectId, page_no:int=1, page_size:int=50):
         results = await self.collection.find({"chunk_project_id": project_id}).skip((page_no-1)*page_size).limit(page_size).to_list(length=None)
         return [DataChunk(**result) for result in results]
+    

@@ -1,8 +1,9 @@
 import os
 
+
 class TemplateParser:
 
-    def __init__(self, language: str=None, default_language='en'):
+    def __init__(self, language: str | None=None, default_language='en'):
         self.current_path = os.path.dirname(os.path.abspath(__file__))
         self.default_language = default_language
         self.language = None
@@ -15,7 +16,9 @@ class TemplateParser:
             self.language = self.default_language
             
 
-    def get(self, group: str, key: str, vars: dict={}):
+    def get(self, group: str, key: str, vars: dict | None=None):
+        if vars is None:
+            vars = {}
         if not group or not key:
             return None
 

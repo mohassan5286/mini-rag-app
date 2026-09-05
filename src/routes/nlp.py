@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Request, status
-from .schema.nlp import PushRequest, SearchRequest
-from controllers import NLPController
-from models import ProjectModel, ChunkModel
-from models.enums.ResponseEnums import ResponseEnums
 from fastapi.responses import JSONResponse
 
+from controllers import NLPController
+from models import ChunkModel, ProjectModel
+from models.enums import ResponseEnum
+
+from .schema.nlp import PushRequest, SearchRequest
 
 nlp_router = APIRouter()
 
@@ -13,6 +14,13 @@ nlp_router = APIRouter()
 async def index_project(request: Request, project_id: str, push_request: PushRequest):
     project_model = await ProjectModel.create_instance(request.app.mongodb)
     project = await project_model.get_project_or_create_one(project_id=project_id)
+    if not project:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseEnum.PROJECT_NOT_FOUND_ERROR.value
+            }
+        )
 
     chunk_model = await ChunkModel.create_instance(request.app.mongodb)
 
@@ -31,9 +39,13 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
     page_no = 1
     inserted_items_count = 0
     idx = 0
-
+    if not push_request.do_reset:
+        collection_info = nlp_controller.get_vector_db_collection_info(project=project)
+        if collection_info:
+            idx = collection_info.get("points_count", 0) 
+    
     while has_records:
-        page_chunks = await chunk_model.get_poject_chunks(project_id=project.id, page_no=page_no)
+        page_chunks = await chunk_model.get_project_chunks(project_id=project.id, page_no=page_no)
         if len(page_chunks):
             page_no += 1
             inserted_items_count += len(page_chunks)
@@ -53,7 +65,7 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content={
-                        "signal": ResponseEnums.ERROR.value
+                        "signal": ResponseEnum.INSERT_INTO_VECTORDB_ERROR.value
                     }
                 )
         else:
@@ -62,7 +74,7 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
-            "signal": ResponseEnums.SUCCESS.value,
+            "signal": ResponseEnum.INSERT_INTO_VECTORDB_SUCCESS.value,
             "inserted_items_count": inserted_items_count
         }
     )
@@ -71,7 +83,14 @@ async def index_project(request: Request, project_id: str, push_request: PushReq
 async def get_project_index_info(request: Request, project_id: str):
     project_model = await ProjectModel.create_instance(request.app.mongodb)
     project = await project_model.get_project_or_create_one(project_id=project_id)
-
+    if not project:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "signal": ResponseEnum.PROJECT_NOT_FOUND_ERROR.value
+                }
+            )
+    
     nlp_controller = NLPController(
         vectordb_client=request.app.vectordb_client,
         generation_client=request.app.generation_client,
@@ -81,28 +100,25 @@ async def get_project_index_info(request: Request, project_id: str):
 
     collection_info = nlp_controller.get_vector_db_collection_info(project=project)
 
-    if collection_info:
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={
-                "signal": ResponseEnums.SUCCESS.value,
-                "collection_info": collection_info
-            }
-        )
-
-    else:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={
-                "signal": ResponseEnums.ERROR.value
-            }
-        )
+    return JSONResponse(
+        content={
+            "signal": ResponseEnum.VECTORDB_COLLECTION_RETRIEVED.value,
+            "collection_info": collection_info
+        }
+    )
     
 
 @nlp_router.post("/index/search/{project_id}")
 async def search_index(request: Request, project_id: str, search_request: SearchRequest):
     project_model = await ProjectModel.create_instance(request.app.mongodb)
     project = await project_model.get_project_or_create_one(project_id=project_id)
+    if not project:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseEnum.PROJECT_NOT_FOUND_ERROR.value
+            }
+        )
 
     nlp_controller = NLPController(
         vectordb_client=request.app.vectordb_client,
@@ -119,14 +135,14 @@ async def search_index(request: Request, project_id: str, search_request: Search
         return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={
-                    "signal": ResponseEnums.ERROR.value
+                    "signal": ResponseEnum.VECTORDB_SEARCH_ERROR.value
                 }
             )
     
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
-            "signal": ResponseEnums.SUCCESS.value,
+            "signal": ResponseEnum.VECTORDB_SEARCH_SUCCESS.value,
             "results": [result.model_dump() for result in results]
         }
     )
@@ -135,6 +151,13 @@ async def search_index(request: Request, project_id: str, search_request: Search
 async def answer_rag(request: Request, project_id: str, search_request: SearchRequest):
     project_model = await ProjectModel.create_instance(request.app.mongodb)
     project = await project_model.get_project_or_create_one(project_id=project_id)
+    if not project:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseEnum.PROJECT_NOT_FOUND_ERROR.value
+            }
+        )
 
     nlp_controller = NLPController(
         vectordb_client=request.app.vectordb_client,
@@ -151,17 +174,16 @@ async def answer_rag(request: Request, project_id: str, search_request: SearchRe
         return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={
-                    "signal": ResponseEnums.ERROR.value
+                    "signal": ResponseEnum.RAG_ANSWER_ERROR.value
                 }
             )
     
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={
-            "signal": ResponseEnums.SUCCESS.value,
+            "signal": ResponseEnum.RAG_ANSWER_SUCCESS.value,
             "answer": answer,
             "full_prompt": full_prompt,
             "chat_history": chat_history
         }
     )
-

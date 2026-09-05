@@ -1,10 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from bson.objectid import ObjectId
 from datetime import datetime, timezone
 
+from bson.objectid import ObjectId
+from pydantic import BaseModel, Field
+
+
 class Asset(BaseModel):
-    id: Optional [ObjectId] = Field(None, alias = '_id')
+    id: ObjectId | None = Field(None, alias = '_id')
     asset_project_id: ObjectId
     asset_type: str = Field(..., min_length=1)
     asset_name: str = Field(..., min_length=1)
