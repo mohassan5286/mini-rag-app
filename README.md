@@ -1,5 +1,3 @@
-Here is the cleaned and properly formatted `README.md`, with the conversational artifacts removed and the markdown structure fixed:
-
 # Mini-RAG: Retrieval-Augmented Generation Backend
 
 Mini-RAG is a FastAPI backend for Retrieval-Augmented Generation. It uses PostgreSQL (`pgvector`), RabbitMQ, and Celery to cleanly separate data processing and background tasks from your LLMs.
