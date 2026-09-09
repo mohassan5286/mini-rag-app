@@ -1,15 +1,16 @@
 import asyncio
 import logging
 
-from celery_app import celery_app, get_setup_utils
 from fastapi import APIRouter
-from celery.exceptions import Ignore
 
-from helpers.config import get_settings
-from controllers import DataController, ProjectController, ProcessController, NLPController
-from models.db_schemes import Asset, DataChunk
+from celery_app import celery_app, get_setup_utils
+from controllers import (
+    NLPController,
+    ProcessController,
+)
+from models import AssetModel, ChunkModel, ProjectModel, ResponseEnum
+from models.db_schemes import DataChunk
 from models.enums import AssetTypeEnum
-from models import AssetModel, ResponseEnums, ProjectModel, ChunkModel
 from utils.idempotency_manager import IdempotencyManager
 
 logger = logging.getLogger(__name__)
@@ -76,17 +77,43 @@ async def _process_project_files(task_instance, project_id: int, file_id: str, c
         if file_id:
             asset_record = await asset_model.get_asset_record(asset_project_id=project.project_id, asset_name=file_id)
             if asset_record is None:
-                await idempotency_manager.update_task_status(execution_id=task_record.execution_id, status="FAILURE", result={"signal": ResponseEnums.ERROR.value, "error": f"File {file_id} not found."})
-                raise Ignore()
+                task_instance.update_state(
+                    state="FAILURE",
+                    meta={
+                        "signal": ResponseEnum.FILE_ID_ERROR.value,
+                    }
+                )
+
+                await idempotency_manager.update_task_status(
+                    execution_id=task_record.execution_id,
+                    status='FAILURE',
+                    result={"signal": ResponseEnum.FILE_ID_ERROR.value}
+                )
+
+                raise Exception(f"No assets for file: {file_id}")
             
             project_files_ids = {asset_record.asset_id: asset_record.asset_name}
+        
         else:
             asset_records = await asset_model.get_all_assets(asset_project_id=project.project_id, asset_type=AssetTypeEnum.FILE.value)
             project_files_ids = {asset_record.asset_id: asset_record.asset_name for asset_record in asset_records}
 
         if not project_files_ids:
-            await idempotency_manager.update_task_status(execution_id=task_record.execution_id, status="FAILURE", result={"signal": ResponseEnums.ERROR.value, "error": "No project files found."})
-            raise Ignore()
+            task_instance.update_state(
+                state="FAILURE",
+                meta={
+                    "signal": ResponseEnum.NO_FILES_ERROR.value,
+                }
+            )
+
+            # Update task status to FAILURE
+            await idempotency_manager.update_task_status(
+                execution_id=task_record.execution_id,
+                status='FAILURE',
+                result={"signal": ResponseEnum.NO_FILES_ERROR.value,}
+            )
+
+            raise Exception(f"No files found for project_id: {project.project_id}")
 
         process_controller = ProcessController(project_id=project_id)
 
@@ -94,10 +121,6 @@ async def _process_project_files(task_instance, project_id: int, file_id: str, c
         no_processed_files = 0   
 
         chunk_model = await ChunkModel.create_instance(db_client=db_client)
-        if do_reset:
-            collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
-            await vectordb_client.delete_collection(collection_name=collection_name)
-            await chunk_model.delete_chunks_by_project_id(project_id=project.project_id, collection_name=collection_name)
 
         for asset_id, current_file_id in project_files_ids.items():
             file_content = process_controller.get_file_content(file_id=current_file_id)
@@ -109,8 +132,8 @@ async def _process_project_files(task_instance, project_id: int, file_id: str, c
             file_chunks = process_controller.process_file_content(file_content=file_content, file_id=current_file_id, chunk_size=chunk_size, chunk_overlap=overlap_size)
 
             if not file_chunks:
-                await idempotency_manager.update_task_status(execution_id=task_record.execution_id, status="FAILURE", result={"error": f"Error occurred while processing the file: {current_file_id}", "signal": ResponseEnums.ERROR.value})
-                raise Ignore()
+                logger.error(f"No chunks for file_id: {current_file_id}")
+                continue
             
             file_chunks_records = [
                 DataChunk(
@@ -127,42 +150,45 @@ async def _process_project_files(task_instance, project_id: int, file_id: str, c
             no_processed_files += 1
 
         task_instance.update_state(
-            state = "SUCCESS",
-            meta = {
-                "signal": ResponseEnums.SUCCESS.value
+            state="SUCCESS",
+            meta={
+                "signal": ResponseEnum.PROCESSING_SUCCESS.value,
             }
         )
-        await idempotency_manager.update_task_status(execution_id=task_record.execution_id, status="SUCCESS", result={"signal": ResponseEnums.SUCCESS.value})
 
+        await idempotency_manager.update_task_status(
+            execution_id=task_record.execution_id,
+            status='SUCCESS',
+            result={"signal": ResponseEnum.PROCESSING_SUCCESS.value}
+        )
+        
         return {
-            "signal": ResponseEnums.SUCCESS.value,
-            "no-records": no_records,
-            "no-processed-files": no_processed_files,
+            "signal": ResponseEnum.PROCESSING_SUCCESS.value,
+            "inserted_chunks": no_records,
+            "processed_files": no_processed_files,
             "project_id": project_id,
             "do_reset": do_reset
         }
 
-    except Ignore:
-        raise
-
     except Exception as e:
-        logger.error(f"Error occurred while processing the project: {e}")
-        
+        logger.error(f"Task failed: {e!s}")
         if task_record:
             await idempotency_manager.update_task_status(
                 execution_id=task_record.execution_id, 
                 status="FAILURE", 
                 result={
-                    "error": f"Error occurred while processing the project: {str(e)}",
-                    "signal": ResponseEnums.ERROR.value
+                    "error": str(e),
                 }
             )
-            
         raise
 
     finally:
         try:
             if db_engine:
                 await db_engine.dispose()
+            
+            if vectordb_client:
+                await vectordb_client.disconnect()
+        
         except Exception as e:
             logger.error(f"Task failed while cleaning: {str(e)}")

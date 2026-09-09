@@ -1,6 +1,5 @@
-from .enums.ResponseEnums import ResponseEnums
-from .enums.ProcessEnums import ProcessEnums
-
-from .ProjectModel import ProjectModel
-from .ChunkModel import ChunkModel
-from .AssetModel import AssetModel
+from .asset_model import AssetModel
+from .chunk_model import ChunkModel
+from .enums.process_enum import ProcessEnum
+from .enums.response_enum import ResponseEnum
+from .project_model import ProjectModel

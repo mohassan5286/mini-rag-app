@@ -1,7 +1,9 @@
-from .minirag_base import SQLAlchemyBase
-from sqlalchemy import Column, Integer, Uuid, DateTime, func
 import uuid
+
+from sqlalchemy import Column, DateTime, Integer, Uuid, func
 from sqlalchemy.orm import relationship
+
+from .minirag_base import SQLAlchemyBase
 
 
 class Project(SQLAlchemyBase):

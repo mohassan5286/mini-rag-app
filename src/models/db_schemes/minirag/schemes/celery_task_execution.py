@@ -30,4 +30,3 @@ class CeleryTaskExecution(SQLAlchemyBase):
         Index('ixz_task_execution_created_at', created_at),
         Index('ixz_celery_task_id', celery_task_id),
     )
-

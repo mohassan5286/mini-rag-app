@@ -4,7 +4,6 @@ import logging
 from celery import chain
 from fastapi import APIRouter
 
-# Adjust imports based on your project structure
 from celery_app import celery_app
 from tasks.data_indexing import _index_data_content
 from tasks.file_processing import process_project_files

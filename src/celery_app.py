@@ -1,25 +1,24 @@
 from celery import Celery
-from helpers.config import get_settings
-
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-
-from stores.llm.LLMProviderFactory import LLMProviderFactory
-from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
-
-from stores.llm.templates import TemplateParser
-
 from celery.schedules import crontab
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from helpers.config import get_settings
+from stores.llm.llm_provider_factory import LLMProviderFactory
+from stores.llm.templates import TemplateParser
+from stores.vectordb.vectordb_provider_factory import VectorDBProviderFactory
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
 async def get_setup_utils():
     DATABASE_URL = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
     db_engine = create_async_engine(DATABASE_URL)
-
     db_client = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
 
-    llm_provider_factory = LLMProviderFactory(configs = settings)
+    llm_provider_factory = LLMProviderFactory(configs=settings)
 
     generation_client = llm_provider_factory.create_provider(settings.GENERATION_BACKEND)
     generation_client.set_generation_model(settings.GENERATION_MODEL_ID)
@@ -27,7 +26,7 @@ async def get_setup_utils():
     embedding_client = llm_provider_factory.create_provider(settings.EMBEDDING_BACKEND)
     embedding_client.set_embedding_model(settings.EMBEDDING_MODEL_ID, settings.EMBEDDING_MODEL_SIZE)
 
-    vectordb_provider_factory = VectorDBProviderFactory(configs = settings)
+    vectordb_provider_factory = VectorDBProviderFactory(configs=settings)
     vectordb_client = vectordb_provider_factory.create(settings.VECTOR_DB_BACKEND, db_client)
     await vectordb_client.connect()
 
@@ -46,7 +45,7 @@ celery_app = Celery(
     "mini-rag",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=['tasks.mail_service', "tasks.file_processing", "tasks.data_indexing", "tasks.process_workflow", "tasks.maintenance"]
+    include=["tasks.file_processing", "tasks.data_indexing", "tasks.process_workflow", "tasks.maintenance"]
 )
 
 celery_app.conf.update(
@@ -70,17 +69,16 @@ celery_app.conf.update(
     worker_cancel_long_running_tasks_on_connection_loss=True,
 
     task_routes={
-        "tasks.mail_service.send_email": {"queue": "mail_server_queue"},
         "tasks.file_processing.process_project_files": {"queue": "file_processing"},
         "tasks.data_indexing.index_data_content": {"queue": "data_indexing"}, 
         "tasks.process_workflow.process_and_push_workflow": {"queue": "file_processing"},
-        # "tasks.file_processing.process_project_files": {"queue": "file_processing"}
+        "tasks.process_workflow.push_after_process_task": {"queue": "data_indexing"}
     },
 
     beat_schedule={
         "cleanup-stale-tasks-daily": {
             "task": "tasks.maintenance.cleanup_idempotency_tasks",
-            "schedule": crontab(minute="*"), 
+            "schedule": crontab(minute=0, hour=0),
         }
     },
 

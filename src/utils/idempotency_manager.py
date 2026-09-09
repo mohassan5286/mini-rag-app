@@ -1,8 +1,11 @@
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, delete
+
+from sqlalchemy import delete, select
+
 from models.db_schemes.minirag.schemes.celery_task_execution import CeleryTaskExecution
+
 
 class IdempotencyManager:
     def __init__(self, db_client, db_engine):
@@ -19,7 +22,7 @@ class IdempotencyManager:
         return hashlib.sha256(json_string.encode()).hexdigest()
 
 
-    async def create_task_record(self, task_name: str, task_args: dict, celery_task_id: str = None) -> CeleryTaskExecution:
+    async def create_task_record(self, task_name: str, task_args: dict, celery_task_id: str | None = None) -> CeleryTaskExecution:
         task_args_hash = self.create_args_hash(task_name, task_args)
 
         new_task = CeleryTaskExecution(
@@ -37,7 +40,7 @@ class IdempotencyManager:
             return new_task
 
 
-    async def update_task_status(self, execution_id: int, status: str, result: dict = None):
+    async def update_task_status(self, execution_id: int, status: str, result: dict | None = None):
         async with self.db_client() as session:
             task_record = await session.get(CeleryTaskExecution, execution_id)
             if task_record:
@@ -96,3 +99,4 @@ class IdempotencyManager:
             await session.commit()
             
             return result.rowcount
+        

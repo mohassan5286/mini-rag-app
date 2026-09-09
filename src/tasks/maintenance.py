@@ -29,5 +29,6 @@ async def _cleanup_idempotency_tasks():
         try:
             if db_engine:
                 await db_engine.dispose()
+        
         except Exception as e:
             logger.error(f"Task failed while cleaning DB connection: {str(e)}")

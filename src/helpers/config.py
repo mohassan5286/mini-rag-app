@@ -1,4 +1,3 @@
-from typing import List
 from pydantic_settings import BaseSettings
 
 
@@ -28,10 +27,10 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_ID: str = None
     EMBEDDING_MODEL_SIZE: int = None
     DEFAULT_INPUT_MAX_CHARACTERS: int = None
-    DEFAULT_OUTPUT_MAX_CHARACTERS: int = None
+    DEFAULT_OUTPUT_MAX_TOKENS: int = None
     GENERATION_DAFAULT_TEMPERATURE: float = None
 
-    VECTOR_DB_BACKEND_LITERAL: List[str] = None
+    VECTOR_DB_BACKEND_LITERAL: list[str] = None
     VECTOR_DB_BACKEND: str
     VECTOR_DB_PATH: str
     VECTOR_DB_DISTANCE_METHOD: str

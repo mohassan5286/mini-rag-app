@@ -1,7 +1,8 @@
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import FastAPI, Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
 import time
+
+from fastapi import FastAPI, Request, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from starlette.middleware.base import BaseHTTPMiddleware
 
 REQUEST_COUNTER = Counter('http_requests_total', 'Total number of HTTP requests made', ['method', 'status', 'endpoint'])
 REQUEST_HISTOGRAM = Histogram('http_request_duration_seconds', 'HTTP request latency', ['method', 'endpoint'])

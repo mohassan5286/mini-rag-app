@@ -1,10 +1,11 @@
-from pydantic import BaseModel
+import uuid
 
-from .minirag_base import SQLAlchemyBase
-from sqlalchemy import Column, ForeignKey, Integer, Uuid, DateTime, String, func, Index 
+from pydantic import BaseModel
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Uuid, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
-import uuid
+
+from .minirag_base import SQLAlchemyBase
 
 
 class DataChunk(SQLAlchemyBase):

@@ -1,2 +1,2 @@
-from .QdrantDBProvider import QdrantDBProvider
-from .PGVectorProvider import PGVectorProvider
+from .qdrantdb_provider import QdrantDBProvider
+from .pgvector_provider import PGVectorProvider
