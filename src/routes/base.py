@@ -18,4 +18,3 @@ def welcome(settings=Depends(get_settings)):
         "App Version": APP_VERSION,
 	    "current_time": datetime.now(timezone.utc),
     }
-
